@@ -17,5 +17,5 @@ Create one R script called run_analysis.R that does the following:
  
 # run_analysis.R
 run_analysis.R script is a simple straightforward script that creates two datasets:
-* dt (extracted measurements from datasets accoriding to steps 1-4)
-* sdt (simplified sdt, according to step 5)
+* data_all (extracted measurements from datasets accoriding to steps 1-4)
+* tidy_data (simplified data_all, according to step 5)
