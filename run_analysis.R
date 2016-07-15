@@ -49,7 +49,9 @@ data_all <- rbind(data_train, data_test)
 data_all <- data_all[,filter]
 data_all[,2] <- activities[data_all[,2]]
 
-# Tidy data with average values only
-filter <- c( 1, 2, grep("mean",names(data_all)), 89)
+#Tidy data with average values only
+filter <- c( 1, 2, grep("mean",names(data_all)), dim(data_all)[2])
 tidy_data <- data_all[ ,filter]
-tidy_data[,2] <- activities[tidy_data[,2]]
+tidy_data <- aggregate(tidy_data[,-(1:2)], by = list(tidy_data$subject, tidy_data$activity), FUN = mean)
+names(tidy_data)[1] <- "subject"
+names(tidy_data)[2] <- "activity"
