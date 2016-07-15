@@ -59,7 +59,7 @@ names(dt) <- c("subject", "activityno", "mean", "sd", "set" )
 dt <- mutate(dt, activity = actlab[dt$activityno,2] )# change activity no into descriptions
 
 dt <- arrange(dt, subject, activityno)
-
+dt <- dt[,-2] # remove activityno
 
 # Independent tidy data set with the average
 # of each variable for each activity and each subject
@@ -67,9 +67,9 @@ dt <- arrange(dt, subject, activityno)
 # sdt:
 # - subject
 # - activity
-# - avg: avarage
-# - sd: standard deviation
+# - avg: avarage for the subject of all observations
+# - sd: standard deviation for the subject of all observations
 
 sdt <- data.table( aggregate(dt$mean, by = list(dt$subject, dt$activity), FUN = mean) )
-sdt <- mutate(sdt, sd = aggregate(dt$sd, by = list(dt$subject, dt$activity), FUN = sd)[,3] )
+sdt <- mutate(sdt, sd = aggregate(dt$mean, by = list(dt$subject, dt$activity), FUN = sd)[,3] )
 names( sdt ) <- c("subject", "activity", "avg", "sd" )
