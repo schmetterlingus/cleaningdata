@@ -1,75 +1,55 @@
-# Start with setting your working directory properly
-# run_analysis.R should be one level higher than unzipped dir.
-# Otherwise you need to change "wd" variable.
-
 require(data.table)
-require(dplyr)
 
-# Config
-wd <- "UCI HAR Dataset/" # set working dir
-files <- list( #set files paths
-  labels = paste0( wd, "activity_labels.txt" ),
-  trainingset = paste0( wd, "train/X_train.txt" ),
-  traininglabels = paste0( wd, "train/y_train.txt" ),
-  trainingsubject = paste0( wd, "train/subject_train.txt" ),
-  testset = paste0( wd, "test/X_test.txt" ),
-  testlabels = paste0( wd, "test/y_test.txt" ),
-  testsubject = paste0( wd, "test/subject_test.txt" )
-  )
-
-# Load
-cleanlabels <- function(x) { #clean labels and trun to lowercase
-  if ( !is.integer(x)) 
-     gsub("_", "", tolower(x) )
-}
-
-actlab <- read.csv(files$labels, sep = " ", header = F) # read in activity labels
-colnames(actlab) <- c("actno","actdesc") #Name activity headers
-actlab$actdesc <- apply(actlab, 1, function(x) ( gsub("_", "", tolower(x[2]))) )
-
-# Get all the tables and merge them calculating standard dev
-# and mean value. "Set" value tells whether the observation
-# comes form training or test set.
-#
-# dt:
-# - subject: subject no
-# - activityno: activity number
-# - mean: mean value for the observation
-# - sd: standard deviation value for the observation
-# - set: the dataset (training/test)
-
-dt <- rbind (
-  data.table(
-    subject = read.csv(files$trainingsubject, header = F),
-    activityno = read.csv(files$traininglabels, header = F),
-    mean = apply( read.table(files$trainingset), 1, mean),
-    sd = apply( read.table(files$trainingset), 1, sd),
-    set = "training"
+# Set all files paths
+datadir <- "UCI HAR Dataset/"
+files = c(
+  test = c(
+    subject = paste0(datadir,"test/subject_test.txt"),
+    activity = paste0(datadir,"test/y_test.txt"),
+    data = paste0(datadir,"test/X_test.txt")
   ),
-  data.table(
-    subject = read.csv(files$testsubject, header = F),
-    activityno = read.csv(files$testlabels, header = F),
-    mean = apply( read.table(files$testset), 1, mean),
-    sd = apply( read.table(files$testset), 1, sd),
-    set = "test"
-  )
+  train = c(
+    subject = paste0(datadir,"train/subject_train.txt"),
+    activity = paste0(datadir,"train/y_train.txt"),
+    data = paste0(datadir,"train/X_train.txt")
+  ),
+  features = paste0(datadir,"features.txt"),
+  actlabels =  paste0(datadir,"activity_labels.txt")
 )
 
-names(dt) <- c("subject", "activityno", "mean", "sd", "set" )
-dt <- mutate(dt, activity = actlab[dt$activityno,2] )# change activity no into descriptions
+# Get the names (features)
+columns <- c("subject", "activity", as.character(read.table(files["features"])[,2]), "dataset" )
+columns <- gsub("[(),-]", "", tolower(columns) )
+filter <- sort( c(1, 2, grep("mean",columns), grep("std",columns), 564) )
 
-dt <- arrange(dt, subject, activityno)
-dt <- dt[,-2] # remove activityno
+# Get activities names
+activities <- as.character(read.table(files["actlabels"])[,2])
+activities <- gsub("[(),-_]", "", tolower(activities) )
 
-# Independent tidy data set with the average
-# of each variable for each activity and each subject
-#
-# sdt:
-# - subject
-# - activity
-# - avg: avarage for the subject of all observations
-# - sd: standard deviation for the subject of all observations
+# Read the train set
+data_train <- data.frame(
+  read.table(files["train.subject"]),
+  read.table(files["train.activity"]),
+  read.table(files["train.data"]),
+  dataset = "train"
+)
+names(data_train) <- columns
 
-sdt <- data.table( aggregate(dt$mean, by = list(dt$subject, dt$activity), FUN = mean) )
-sdt <- mutate(sdt, sd = aggregate(dt$mean, by = list(dt$subject, dt$activity), FUN = sd)[,3] )
-names( sdt ) <- c("subject", "activity", "avg", "sd" )
+# Read the test set
+data_test <- data.frame(
+  read.table(files["test.subject"]),
+  read.table(files["test.activity"]),
+  read.table(files["test.data"]),
+  dataset = "test"
+)
+names(data_test) <- columns
+
+# Join the training and the test set and get means and stds
+data_all <- rbind(data_train, data_test)
+data_all <- data_all[,filter]
+data_all[,2] <- activities[data_all[,2]]
+
+# Tidy data with average values only
+filter <- c( 1, 2, grep("mean",names(data_all)), 89)
+tidy_data <- data_all[ ,filter]
+tidy_data[,2] <- activities[tidy_data[,2]]
